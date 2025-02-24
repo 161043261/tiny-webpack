@@ -1,0 +1,26 @@
+/** Do NOT modify this file */
+
+(function (fileId_To_fnAndDepPath2DepId) {
+  function require(fileId) {
+    const [fn, depPath2depId] = fileId_To_fnAndDepPath2DepId[fileId];
+    const module = {
+      exports: {},
+    };
+    const use2 = (depPath) => {
+      const depId = depPath2depId[depPath];
+      return require(depId);
+    };
+    fn(use2, module, module.exports);
+    return module.exports;
+  }
+  require(0);
+})({
+
+  <% data.forEach(item => { %>
+    ["<%- item['fileId'] %>"]: [
+      function (require, module, exports) { <%- item['cjsCode'] %> },
+      <%- JSON.stringify(item['depPath2depId']) %>
+    ],
+  <% }); %>
+
+});

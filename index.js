@@ -3,8 +3,10 @@ import parser from "@babel/parser";
 import path from "node:path";
 import ejs from "ejs";
 import { transformFromAstSync } from "@babel/core";
-import { jsonLoader } from "./json_loader";
+import { jsonLoader } from "./json_loader.js";
+import { ChangeOutputPath } from "./ChangeOutputPath.js";
 import _traverse from "@babel/traverse";
+import { SyncHook } from "tapable";
 const traverse = _traverse.default;
 const tinyConfig = {
   module: {
@@ -15,7 +17,18 @@ const tinyConfig = {
       },
     ],
   },
+  plugins: [new ChangeOutputPath()],
 };
+const hooks = {
+  emitFile: new SyncHook(["pluginContext"]),
+};
+function usePlugins() {
+  const plugins = tinyConfig.plugins;
+  for (const plugin of plugins) {
+    plugin.apply(hooks);
+  }
+}
+usePlugins();
 let fileId = 0;
 function createAsset(filepath) {
   let sourceCode = fs.readFileSync(filepath, {
@@ -84,6 +97,13 @@ function build(graph) {
     };
   });
   const code = ejs.render(template, { data });
-  fs.writeFileSync("./dist/bundle.js", code);
+  let outputPath = "./dist/bundle.js";
+  const pluginContext = {
+    changeOutputPath(newPath) {
+      outputPath = newPath;
+    },
+  };
+  hooks.emitFile.call(pluginContext);
+  fs.writeFileSync(outputPath, code);
 }
 build(graph);

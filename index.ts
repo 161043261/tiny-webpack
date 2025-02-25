@@ -8,10 +8,11 @@ import ejs from "ejs";
 import { transformFromAstSync } from "@babel/core";
 //! 需要对 tsc 编译后的 index.js 手动加上文件后缀名
 import { jsonLoader } from "./json_loader"; /** .js */
+import { ChangeOutputPath } from "./ChangeOutputPath";
 
 // import traverse from "@babel/traverse";
 import _traverse from "@babel/traverse";
-import { ChangeOutputPath } from "ChangeOutputPath";
+import { SyncHook } from "tapable";
 // @ts-ignore
 const traverse: typeof _traverse = _traverse.default;
 
@@ -44,7 +45,21 @@ const tinyConfig: ITinyConfig = {
   plugins: [new ChangeOutputPath()],
 };
 //////////////////////////////////////////////////
+const hooks = {
+  emitFile: new SyncHook<{ changeOutputPath(newPath: string): void }>([
+    "pluginContext",
+  ]),
+};
+export type Hook = typeof hooks;
 
+function usePlugins() {
+  const plugins = tinyConfig.plugins;
+  for (const plugin of plugins) {
+    plugin.apply(hooks);
+  }
+}
+usePlugins();
+//////////////////////////////////////////////////
 let fileId = 0;
 
 interface IAsset {
@@ -154,7 +169,16 @@ function build(graph: IAsset[]) {
   // console.log(data);
   const code = ejs.render(template, { data });
   // console.log(code);
-  fs.writeFileSync("./dist/bundle.js", code);
+
+  let outputPath = "./dist/bundle.js";
+  const pluginContext = {
+    changeOutputPath(newPath: string) {
+      outputPath = newPath;
+    },
+  };
+  // 触发 emitFile 上的所有事件 change-output-path
+  hooks.emitFile.call(pluginContext);
+  fs.writeFileSync(outputPath, code);
 }
 
 build(graph);

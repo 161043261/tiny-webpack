@@ -6,37 +6,35 @@ import ejs from "ejs";
 //! pnpm i @babel/core -D
 //! pnpm i @babel/preset-env -D
 import { transformFromAstSync } from "@babel/core";
-import { jsonLoader } from "./json_loader";
+//! 需要对 tsc 编译后的 index.js 手动加上文件后缀名
+import { jsonLoader } from "./json_loader"; /** .js */
 
 // import traverse from "@babel/traverse";
 import _traverse from "@babel/traverse";
 // @ts-ignore
 const traverse: typeof _traverse = _traverse.default;
 
-interface IWebpackConfig {
+type LoaderChain =
+  | ((sourceCode: string) => string)
+  | ((sourceCode: string) => string)[];
+
+interface ITinyConfig {
   module: {
     rules: {
-      test: RegExp;
-      use: {
-        loader: string;
-        options: { [key: string]: any };
-      };
+      // Regular expression for testing file extensions
+      extRegExp: RegExp;
+      loaderChain: LoaderChain;
     }[];
   };
 }
 
 //////////////////////////////////////////////////
-const webpackConfig: IWebpackConfig = {
+const tinyConfig: ITinyConfig = {
   module: {
     rules: [
       {
-        test: /\.json$/,
-        use: {
-          loader: path.resolve(__dirname, "../src/loader.js"),
-          options: {
-            name: "",
-          },
-        },
+        extRegExp: /\.json$/,
+        loaderChain: [jsonLoader],
       },
     ],
   },
@@ -55,17 +53,30 @@ interface IAsset {
 
 function createAsset(filepath: string): IAsset {
   // 1. 获取文件内容
-  const sourceCode: string = fs.readFileSync(filepath, {
+  let sourceCode: string = fs.readFileSync(filepath, {
     encoding: "utf8",
   });
   // console.log(source /** .toString() */);
 
   //////////////////////////////////////////////////
   //! loader
-  const loaders = webpackConfig.module.rules;
-  for (const loader of loaders) {
-    const { test, use } = loader;
-    
+  const loaderRules = tinyConfig.module.rules;
+  const loaderContext = {
+    addDeps(dep: string) {
+      console.log("loaderContext.addDeps:", dep);
+    },
+  };
+  for (const loaderRule of loaderRules) {
+    const { extRegExp, loaderChain } = loaderRule;
+    if (extRegExp.test(filepath)) {
+      if (Array.isArray(loaderChain)) {
+        for (const loader of loaderChain) {
+          sourceCode = loader.call(loaderContext /** this */, sourceCode);
+        }
+      } else {
+        sourceCode = loaderChain.call(loaderContext /** this */, sourceCode);
+      }
+    }
   }
   //////////////////////////////////////////////////
 

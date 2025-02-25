@@ -3,13 +3,42 @@ import parser from "@babel/parser";
 import path from "node:path";
 import ejs from "ejs";
 import { transformFromAstSync } from "@babel/core";
+import { jsonLoader } from "./json_loader.js";
 import _traverse from "@babel/traverse";
 const traverse = _traverse.default;
+const tinyConfig = {
+  module: {
+    rules: [
+      {
+        extRegExp: /\.json$/,
+        loaderChain: [jsonLoader],
+      },
+    ],
+  },
+};
 let fileId = 0;
 function createAsset(filepath) {
-  const sourceCode = fs.readFileSync(filepath, {
+  let sourceCode = fs.readFileSync(filepath, {
     encoding: "utf8",
   });
+  const loaderRules = tinyConfig.module.rules;
+  const loaderContext = {
+    addDeps(dep) {
+      console.log("loaderContext.addDeps:", dep);
+    },
+  };
+  for (const loaderRule of loaderRules) {
+    const { extRegExp, loaderChain } = loaderRule;
+    if (extRegExp.test(filepath)) {
+      if (Array.isArray(loaderChain)) {
+        for (const loader of loaderChain) {
+          sourceCode = loader.call(loaderContext, sourceCode);
+        }
+      } else {
+        sourceCode = loaderChain.call(loaderContext, sourceCode);
+      }
+    }
+  }
   const ast = parser.parse(sourceCode, {
     sourceType: "module",
   });

@@ -11,6 +11,7 @@ import { jsonLoader } from "./json_loader"; /** .js */
 
 // import traverse from "@babel/traverse";
 import _traverse from "@babel/traverse";
+import { ChangeOutputPath } from "ChangeOutputPath";
 // @ts-ignore
 const traverse: typeof _traverse = _traverse.default;
 
@@ -26,6 +27,8 @@ interface ITinyConfig {
       loaderChain: LoaderChain;
     }[];
   };
+
+  plugins: any[];
 }
 
 //////////////////////////////////////////////////
@@ -38,6 +41,7 @@ const tinyConfig: ITinyConfig = {
       },
     ],
   },
+  plugins: [new ChangeOutputPath()],
 };
 //////////////////////////////////////////////////
 

@@ -11,7 +11,6 @@ class List {
 class Car {
   hooks = {
     accelerate: new SyncHook(["newSpeed"]),
-    brake: new SyncHook(),
     calculateRoutes: new AsyncParallelHook(["source", "target", "routesList"]),
   };
   constructor() {}
@@ -23,17 +22,13 @@ class Car {
     return this.hooks.calculateRoutes
       .promise(source, target, routesList)
       .then((res) => {
+        console.log("useNavigationSystemPromise");
         console.log(res);
       });
   }
   useNavigationSystemAsync(source, target, callback) {
     const routesList = new List();
-    this.hooks.calculateRoutes.callAsync(source, target, routesList, (err) => {
-      if (err) {
-        return callback(err);
-      }
-      callback(null);
-    });
+    this.hooks.calculateRoutes.callAsync(source, target, routesList, callback);
   }
 }
 const car = new Car();
@@ -63,8 +58,4 @@ car.hooks.calculateRoutes.tapAsync(
   },
 );
 car.setSpeed(10);
-car.useNavigationSystemAsync("Nanjing", "Shanghai", (err) => {
-  if (err) {
-    console.error(err);
-  }
-});
+car.useNavigationSystemPromise("Xian", "Nanjing");

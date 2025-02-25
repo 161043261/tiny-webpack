@@ -1,7 +1,7 @@
 import { SyncHook, AsyncParallelHook } from "tapable";
 
 class List {
-  routes: [source: string, target: string] = ["", ""];
+  routes: [source: string, target: string] = ["", ""] as const;
   setRoutes(routes: [source: string, target: string]) {
     this.routes = routes;
   }
@@ -12,8 +12,8 @@ class List {
 
 class Car {
   hooks = {
+    // 事件名, 事件参数
     accelerate: new SyncHook<number>(["newSpeed"] /** newSpeed: number */),
-    brake: new SyncHook(),
     calculateRoutes: new AsyncParallelHook<[string, string, List]>([
       "source", // source: string
       "target", // target: string
@@ -33,6 +33,7 @@ class Car {
     return this.hooks.calculateRoutes
       .promise(source, target, routesList)
       .then((res) => {
+        console.log("useNavigationSystemPromise");
         console.log(res);
       });
   }
@@ -44,12 +45,7 @@ class Car {
   ) {
     const routesList = new List();
     // 触发 calculateRoutes 上的所有事件
-    this.hooks.calculateRoutes.callAsync(source, target, routesList, (err) => {
-      if (err) {
-        return callback(err);
-      }
-      callback(null);
-    });
+    this.hooks.calculateRoutes.callAsync(source, target, routesList, callback);
   }
 }
 
@@ -91,10 +87,12 @@ car.hooks.calculateRoutes.tapAsync(
 car.setSpeed(10);
 
 // 触发 calculateRoutes 上的所有事件: eventNamePromise, eventNameAsync
-// car.useNavigationSystemPromise("Xian", "Nanjing");
+car.useNavigationSystemPromise("Xian", "Nanjing");
 
-car.useNavigationSystemAsync("Nanjing", "Shanghai", (err: Error) => {
-  if (err) {
-    console.error(err);
-  }
-});
+// 触发 calculateRoutes 上的所有事件: eventNamePromise, eventNameAsync
+// car.useNavigationSystemAsync("Nanjing", "Shanghai", (err: Error) => {
+//   console.log("useNavigationSystemAsync");
+//   if (err) {
+//     console.error(err);
+//   }
+// });

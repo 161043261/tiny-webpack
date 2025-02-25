@@ -3,7 +3,7 @@ import parser from "@babel/parser";
 import path from "node:path";
 import ejs from "ejs";
 import { transformFromAstSync } from "@babel/core";
-import { jsonLoader } from "./json_loader.js";
+import { jsonLoader } from "./json_loader";
 import _traverse from "@babel/traverse";
 const traverse = _traverse.default;
 const tinyConfig = {

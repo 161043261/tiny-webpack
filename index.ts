@@ -5,13 +5,43 @@ import path from "node:path";
 import ejs from "ejs";
 //! pnpm i @babel/core -D
 //! pnpm i @babel/preset-env -D
-import { transformFromAst, transformFromAstSync } from "@babel/core";
+import { transformFromAstSync } from "@babel/core";
+import { jsonLoader } from "./json_loader";
 
 // import traverse from "@babel/traverse";
-
 import _traverse from "@babel/traverse";
 // @ts-ignore
 const traverse: typeof _traverse = _traverse.default;
+
+interface IWebpackConfig {
+  module: {
+    rules: {
+      test: RegExp;
+      use: {
+        loader: string;
+        options: { [key: string]: any };
+      };
+    }[];
+  };
+}
+
+//////////////////////////////////////////////////
+const webpackConfig: IWebpackConfig = {
+  module: {
+    rules: [
+      {
+        test: /\.json$/,
+        use: {
+          loader: path.resolve(__dirname, "../src/loader.js"),
+          options: {
+            name: "",
+          },
+        },
+      },
+    ],
+  },
+};
+//////////////////////////////////////////////////
 
 let fileId = 0;
 
@@ -29,6 +59,15 @@ function createAsset(filepath: string): IAsset {
     encoding: "utf8",
   });
   // console.log(source /** .toString() */);
+
+  //////////////////////////////////////////////////
+  //! loader
+  const loaders = webpackConfig.module.rules;
+  for (const loader of loaders) {
+    const { test, use } = loader;
+    
+  }
+  //////////////////////////////////////////////////
 
   // 2. 生成 AST 抽象语法树
   //! pnpm i @babel/parser -D
